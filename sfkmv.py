@@ -5,6 +5,7 @@ from nltk.corpus import stopwords # Provides list of words to remove from emails
 from nltk.stem.wordnet import WordNetLemmatizer # Words to neutral from (nouns by default) eg kills & killing > kill.
 import string
 import gensim # Topic modelling, document indexing and similarity retrieval.
+from random import randint
 
 
 def main():
@@ -22,9 +23,12 @@ def main():
     print("\n>removing duplicates..\n")
     unique_emails = remove_duplicates(email_bodies)
 
-    # Print number of unique emails, followed by 1000th email as a sample.
+    # Random number used to index a sample email later.
+    random_email = randint(1, 200000)
+
+    # Print number of unique emails, followed by the randint email as a sample.
     print('There are a total of {} non-duplicate emails.\n'.format(len(unique_emails)))
-    print('Sample email, unstructured content:\n\n', unique_emails[1000])
+    print('Sample email, unstructured content:\n\n', unique_emails[random_email])
 
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
@@ -32,25 +36,35 @@ def main():
     training_set = clean_data(unique_emails[0:200000])
     testing_set = clean_data(unique_emails[200000:]) #currently unused
 
-    # Print the 1000th email in the training set after being normalized.
-    print('Sample email, normalized content:\n\n', training_set[1000])
+
+    # Print the randint email in the training set after being normalized.
+    print('Sample email, normalized content:\n\n', training_set[random_email])
 
     # Implements the concept of Dictionary – a mapping between words and their integer ids, using the training set.
     print("\n>generating dictionary..\n")
     dictionary = gensim.corpora.Dictionary(training_set)
+    print(str(dictionary))
+
 
     # Keep tokens that are contained in at least 20 documents (absolute number).
     # Keep tokens that are contained in no more than 0.1 documents (fraction of total corpus size, not absolute).
     print("\n>filtering dictionary..\n")
     dictionary.filter_extremes(no_below=20, no_above=0.1)
-    print(dictionary)
 
     # Converts each doc into the bag-of-words format, list of (token_id, token_count).
     print("\n>generating matrix..\n")
     matrix = [dictionary.doc2bow(doc) for doc in training_set]
+    print(matrix)
 
+    # TFIDF is a numerical statistic that aims to reflect the importance of a word within a document.
+    # Output our tfidf_model: "TfidfModel(num_docs=200000, num_nnz=16017590)" where num_nnz is number of non-zero elements.
     tfidf_model = gensim.models.TfidfModel(matrix, id2word=dictionary)
+
+    # LSI aims to identify patterns in relationships between terms and concepts in unstructured text.
+    # Output our lsi_model: "LsiModel(num_terms=47483, num_topics=100, decay=1.0, chunksize=20000)
     lsi_model = gensim.models.LsiModel(tfidf_model[matrix], id2word=dictionary, num_topics=100)
+
+
     topics = lsi_model.print_topics(num_topics=100, num_words=10)
 
     for topic in topics:
