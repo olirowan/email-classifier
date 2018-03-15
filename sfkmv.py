@@ -13,7 +13,7 @@ def main():
     # Calls the "extract_csv_data" function to extract email data.
     print("\n>extracting email data..\n")
     emails = extract_csv_data(
-        'emails.csv',
+        'hillary.csv',
         ['file'],
         [['notes_inbox', 'discussion_threads']]
     )
@@ -24,7 +24,7 @@ def main():
     unique_emails = remove_duplicates(email_bodies)
 
     # Random number used to index a sample email later.
-    random_email = randint(1, 200000)
+    random_email = randint(1, 200)
 
     # Print number of unique emails, followed by the randint email as a sample.
     print('There are a total of {} non-duplicate emails.\n'.format(len(unique_emails)))
@@ -33,7 +33,7 @@ def main():
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
     print("\n>removing unecessary words..\n")
-    training_set = clean_data(unique_emails[0:200000])
+    training_set = clean_data(unique_emails[0:20000])
     testing_set = clean_data(unique_emails[200000:]) #currently unused
 
 
@@ -43,8 +43,6 @@ def main():
     # Implements the concept of Dictionary – a mapping between words and their integer ids, using the training set.
     print("\n>generating dictionary..\n")
     dictionary = gensim.corpora.Dictionary(training_set)
-    print(str(dictionary))
-
 
     # Keep tokens that are contained in at least 20 documents (absolute number).
     # Keep tokens that are contained in no more than 0.1 documents (fraction of total corpus size, not absolute).
