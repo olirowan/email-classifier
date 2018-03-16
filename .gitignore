@@ -1,4 +1,6 @@
-emails.csv
+emails-small.csv
+emails-medium.csv
+emails-large.csv
 if/*
 .idea/*
-hillary.csv
+emails-hillary.csv
