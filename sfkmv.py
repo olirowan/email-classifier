@@ -10,14 +10,11 @@ from random import randint
 
 def main():
 
-    dataset = "emails-medium.csv"
-    column = "spam"
-
     # Calls the "extract_csv_data" function to extract email data.
     print("\n>extracting email data..\n")
     emails = extract_csv_data(
-        dataset,
-        [column],
+        'emails-large.csv',
+        ['file'],
         [['notes_inbox', 'discussion_threads']]
     )
 
@@ -33,7 +30,6 @@ def main():
     print('There are a total of {} non-duplicate emails.\n'.format(len(unique_emails)))
     print('Sample email, unstructured content:\n\n', unique_emails[random_email])
 
-
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
     print("\n>removing unecessary words..\n")
@@ -48,26 +44,36 @@ def main():
     print("\n>generating dictionary..\n")
     dictionary = gensim.corpora.Dictionary(training_set)
 
-
     # Keep tokens that are contained in at least 20 documents (absolute number).
     # Keep tokens that are contained in no more than 0.1 documents (fraction of total corpus size, not absolute).
     print("\n>filtering dictionary..\n")
     dictionary.filter_extremes(no_below=20, no_above=0.1)
 
-
     # Converts each doc into the bag-of-words format, list of (token_id, token_count).
-    print("\n>generating matrix..\n")
+    print("\n>generating training matrix..\n")
     matrix = [dictionary.doc2bow(doc) for doc in training_set]
 
     # TFIDF is a numerical statistic that aims to reflect the importance of a word within a document.
     # Output our tfidf_model: "TfidfModel(num_docs=200000, num_nnz=16017590)" where num_nnz is number of non-zero elements.
     tfidf_model = gensim.models.TfidfModel(matrix, id2word=dictionary)
 
-
     # LSI aims to identify patterns in relationships between terms and concepts in unstructured text.
     # Output our lsi_model: "LsiModel(num_terms=47483, num_topics=100, decay=1.0, chunksize=20000)
     lsi_model = gensim.models.LsiModel(tfidf_model[matrix], id2word=dictionary, num_topics=100)
 
+    topics = lsi_model.print_topics(num_topics=100, num_words=10)
+
+    for topic in topics:
+
+        print(topic)
+
+    # Below is lines 53 - 68, but applied to the testing dataset of emails.
+    # Please note that the dictionary used here has been previously generated.
+    # Perhaps the dictionary should be updated once more from the testing set?
+    print("\n>generating testing matrix..\n")
+    matrix = [dictionary.doc2bow(doc) for doc in testing_set]
+    tfidf_model = gensim.models.TfidfModel(matrix, id2word=dictionary)
+    lsi_model = gensim.models.LsiModel(tfidf_model[matrix], id2word=dictionary, num_topics=100)
 
     topics = lsi_model.print_topics(num_topics=100, num_words=10)
 
