@@ -6,6 +6,13 @@ from nltk.stem.wordnet import WordNetLemmatizer # Words to neutral from (nouns b
 import string
 import gensim # Topic modelling, document indexing and similarity retrieval.
 from random import randint
+import os
+from collections import Counter
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import confusion_matrix
+from sklearn.svm import LinearSVC
+import sys
 
 
 def main():
@@ -24,7 +31,7 @@ def main():
     unique_emails = remove_duplicates(email_bodies)
 
     # Random number used to index a sample email later.
-    random_email = randint(1, 500)
+    random_email = randint(1, 5)
 
     # Print number of unique emails, followed by the randint email as a sample.
     print('There are a total of {} non-duplicate emails.\n'.format(len(unique_emails)))
@@ -33,11 +40,16 @@ def main():
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
     print("\n>removing unecessary words..\n")
-    training_set = clean_data(unique_emails[0:200000])
-    testing_set = clean_data(unique_emails[200000:]) #currently unused
+    training_set = clean_data(unique_emails[0:1000])
+    testing_set = clean_data(unique_emails[1001:2000]) #currently unused
 
     # Print the randint email in the training set after being normalized.
     print('Sample email, normalized content:\n\n', training_set[random_email])
+
+    process_dataset(training_set, testing_set)
+
+
+def process_dataset(training_set, testing_set):
 
     # Implements the concept of Dictionary – a mapping between words and their integer ids, using the training set.
     print("\n>generating dictionary..\n")
@@ -69,8 +81,9 @@ def main():
 
         print(topic)
 
-    # Below is repeating lines 52 - 70, but applied to the testing dataset of emails.
+    # Below is repeating lines 107 - 125, but applied to the testing dataset of emails.
     # Please note that the dictionary used here has been previously generated from the training set.
+    # This code will be cleaned eventually.
     print("\n>generating testing matrix..\n")
     matrix = [dictionary.doc2bow(doc) for doc in testing_set]
     tfidf_model = gensim.models.TfidfModel(matrix, id2word=dictionary)
@@ -86,6 +99,8 @@ def main():
 def extract_csv_data(file, cols_to_clean = [], exclude = [[]]):
 
     data = pd.read_csv(file)
+    print("Email info Below:")
+    print(data['message'][20])
 
     for i, col in enumerate(cols_to_clean):
         exclude_pattern = re.compile('|'.join(exclude[i]))
