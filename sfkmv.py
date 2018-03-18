@@ -20,33 +20,39 @@ def main():
     # Calls the "extract_csv_data" function to extract email data.
     print("\n>extracting email data..\n")
 
+    # Specify the folders containing email data.
     spam = extract_data('enron-data-set/enron1/spam/')
     ham = extract_data('enron-data-set/enron1/ham/')
 
+    # The emails are laid out in a format of 2 columns.
+    # Column 1 is the email content.
+    # Column 2 is whether the email is spam or ham.
+    #
+    # The next two lines iterate through all the emails.
+    # Any email with spam in column 2 is added to spam_emails.
+    # Any email with ham in column 2 is added to ham_emails.
+    #
+    # The entire collection of emails is then stored in all_emails by adding spam_emails and ham_emails.
     spam_emails = [(email, 'spam') for email in spam]
     ham_emails = [(email, 'ham') for email in ham]
     all_emails = spam_emails + ham_emails
 
-    unique_emails = all_emails
-
-    # Sends the email bodies to the "remove_duplicates" function.
-    #email_bodies = emails.message.as_matrix()
-    #print("\n>removing duplicates..\n")
-    #unique_emails = remove_duplicates(email_bodies)
-
     # Random number used to index a sample email later.
-    random_email = randint(1, 5)
+    random_email = randint(1, 50)
 
+    # Print the amount of emails we'll be working with.
     # Print number of unique emails, followed by the randint email as a sample.
-    print('There are a total of {} non-duplicate emails.\n'.format(len(unique_emails)))
-    print('Sample email, unstructured content:\n\n', unique_emails[random_email])
+    print('There are a total of {} non-duplicate emails.\n'.format(len(all_emails)))
+    print('Sample email, unstructured content:\n\n', all_emails[random_email])
 
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
+    # Remove [0:2000] when not testing.
     print("\n>removing unecessary words..\n")
-    cleaned_enron = clean_data(unique_emails[0:2000])
+    cleaned_enron = clean_data(all_emails[0:2000])
 
-    # Split the cleaned enron dataset into a training and testing set. 50%.
+    # Split the cleaned enron dataset into a training and testing set.
+    # When not testing set [0:1000] to [0:200000] and [1001:2000] to [200000:].
     training_set = cleaned_enron[0:1000]
     testing_set = cleaned_enron[1001:2000]
 
@@ -54,29 +60,79 @@ def main():
     print('Sample email, normalized content:\n\n', training_set[random_email])
 
     # Call the create_dictionary function to gererate a dictionary from the training set.
+    # This gets stored in created_dictionary
     created_dictionary = create_dictionary(training_set)
 
     # Send the training and testing set to the process_dataset function along with the dictionary.
     process_dataset(training_set, testing_set, created_dictionary)
 
-    all_features = [(get_features(email, 'bow'), label) for (email, label) in unique_emails]
+    # Explain this
+    all_features = [(get_features(email, 'bow'), label) for (email, label) in all_emails]
 
+    # Explain this
     train_set, test_set, classifier = train(all_features, 0.8)
 
+    # Explain this
     evaluate(train_set, test_set, classifier)
 
+    # Explain this
     Results = classifier.show_most_informative_features(20)
 
+    # Explain this
     print(Results)
 
+    # The generated classifer gets saved to a pickle file, so it can be used in future.
     save_classifier = open("naivebayes.pickle", "wb")
     pickle.dump(classifier, save_classifier)
     save_classifier.close()
 
-    classifier_f = open("naivebayes.pickle", "rb")
-    classifier = pickle.load(classifier_f)
-    print(repr(classifier))
-    classifier_f.close()
+
+# This function is to obtain the email contents from the enron folders.
+def extract_data(folder):
+    # This list starts empty so data can be added to it.
+    a_list = []
+
+    # The loop below will read each email in the specified folders and add the contents to a_list.
+    file_list = os.listdir(folder)
+    for a_file in file_list:
+        f = open(folder + a_file, 'r', encoding='latin-1')
+        a_list.append(f.read())
+    f.close()
+
+    # Send the list back.
+    return a_list
+
+
+# Sends each doc to the "clean" function.
+def clean_data(data):
+    return [clean(doc).split(' ') for doc in data]
+
+
+# Clean up the data, remove unwanteds words that are such as I, A etc.. (stopwords.word('english')).
+def clean(emailbody):
+    # The emails had to be converted to a string.
+    emailbody = str(emailbody)
+
+    # The below 3 lines set the variables to -
+    # Exclude a list of english words
+    # Remove the punctuation
+    # Set the lemmatizer
+    words_to_exclude = set(stopwords.words('english'))
+    exclude = set(string.punctuation)
+    lemma = WordNetLemmatizer()
+
+    # Go through every word in the email, append any word we're keeping to word_free
+    word_free = " ".join([i for i in emailbody.lower().split() if i not in words_to_exclude])
+
+    # Go though all the characters in word_free, add letters and numbers to punc_free.
+    punc_free = ''.join(ch for ch in word_free if ch not in exclude)
+
+    # Lemmatize every word and add it back to normalised.
+    normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
+
+    # Send the cleaned text back.
+    return normalized
+
 
 def create_dictionary(training_set):
 
@@ -84,6 +140,7 @@ def create_dictionary(training_set):
     print("\n>generating dictionary..\n")
     dictionary = gensim.corpora.Dictionary(training_set)
 
+    # Return the created dictionary.
     return dictionary
 
 
@@ -124,70 +181,10 @@ def process_dataset(training_set, testing_set, dictionary):
     lsi_model = gensim.models.LsiModel(tfidf_model[matrix], id2word=dictionary, num_topics=100)
     topics = lsi_model.print_topics(num_topics=100, num_words=10)
 
+    # Print one topic at a time.
     for topic in topics:
 
         print(topic)
-
-
-# Explain this.
-def extract_data(folder):
-
-    a_list = []
-    file_list = os.listdir(folder)
-    for a_file in file_list:
-        f = open(folder + a_file, 'r', encoding='latin-1')
-        a_list.append(f.read())
-    f.close()
-    return a_list
-
-
-# Compares the emails in the CSV and removes duplicate emails.
-def remove_duplicates(data):
-
-    processed = set()
-    result = []
-    pattern = re.compile('X-FileName: .*')
-    pattern2 = re.compile('X-FileName: .*?  ')
-
-    for doc in data:
-        doc = doc.replace('\n', ' ')
-        doc = doc.replace(' .*?nsf', '')
-        match = pattern.search(doc).group(0)
-        match = re.sub(pattern2, '', match)
-
-        if match not in processed:
-            processed.add(match)
-            result.append(match)
-
-    return result
-
-
-# Sends each doc to the "clean" function.
-def clean_data(data):
-
-    return [clean(doc).split(' ') for doc in data]
-
-
-# Clean up the data, remove unwanteds words that are such as I, A etc.. (stopwords.word('english')).
-def clean(doc):
-
-    doc = str(doc)
-
-    words_to_exclude = set(stopwords.words('english'))
-    exclude = set(string.punctuation)
-    lemma = WordNetLemmatizer()
-
-    word_free = " ".join([i for i in  doc.lower().split() if i not in words_to_exclude])
-    punc_free = ''.join(ch for ch in word_free if ch not in exclude)
-    normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
-
-    return normalized
-
-def preprocess(sentence):
-
-    lemma = WordNetLemmatizer()
-    tokens = word_tokenize(sentence)
-    return [lemma.lemmatize(word.lower()) for word in tokens]
 
 
 def get_features(text, setting):
@@ -198,6 +195,13 @@ def get_features(text, setting):
         return {word: count for word, count in Counter(preprocess(text)).items() if not word in stoplist}
     else:
         return {word: True for word in preprocess(text) if not word in stoplist}
+
+
+def preprocess(sentence):
+
+    lemma = WordNetLemmatizer()
+    tokens = word_tokenize(sentence)
+    return [lemma.lemmatize(word.lower()) for word in tokens]
 
 
 def train(features, samples_proportion):
@@ -216,7 +220,6 @@ def evaluate(train_set, test_set, classifier):
 
     print ('Accuracy on the training set = ' + str(classify.accuracy(classifier, train_set)))
     print ('Accuracy of the test set = ' + str(classify.accuracy(classifier, test_set)))
-
 
 
 main()
