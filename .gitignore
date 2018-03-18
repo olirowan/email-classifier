@@ -4,3 +4,7 @@ emails-large.csv
 if/*
 .idea/*
 emails-hillary.csv
+./samples
+./spare
+./mail-dataset
+./Enron-data-set

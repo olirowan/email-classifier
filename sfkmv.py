@@ -1,34 +1,38 @@
-import numpy as np # Linear algebra.
-import pandas as pd # Data processing, CSV file I/O (e.g. pd.read_csv).
 import re
 from nltk.corpus import stopwords # Provides list of words to remove from emails.
 from nltk.stem.wordnet import WordNetLemmatizer # Words to neutral from (nouns by default) eg kills & killing > kill.
 import string
+from nltk import word_tokenize
 import gensim # Topic modelling, document indexing and similarity retrieval.
 from random import randint
 import os
 from collections import Counter
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import confusion_matrix
-from sklearn.svm import LinearSVC
-import sys
+from nltk import NaiveBayesClassifier, classify
+import pickle
 
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+###  https://cambridgespark.com/content/tutorials/implementing-your-own-spam-filter/index.html  ###
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
 def main():
 
     # Calls the "extract_csv_data" function to extract email data.
     print("\n>extracting email data..\n")
-    emails = extract_csv_data(
-        'emails-large.csv',
-        ['file'],
-        [['notes_inbox', 'discussion_threads']]
-    )
+
+    spam = extract_data('enron-data-set/enron1/spam/')
+    ham = extract_data('enron-data-set/enron1/ham/')
+
+    spam_emails = [(email, 'spam') for email in spam]
+    ham_emails = [(email, 'ham') for email in ham]
+    all_emails = spam_emails + ham_emails
+
+    unique_emails = all_emails
 
     # Sends the email bodies to the "remove_duplicates" function.
-    email_bodies = emails.message.as_matrix()
-    print("\n>removing duplicates..\n")
-    unique_emails = remove_duplicates(email_bodies)
+    #email_bodies = emails.message.as_matrix()
+    #print("\n>removing duplicates..\n")
+    #unique_emails = remove_duplicates(email_bodies)
 
     # Random number used to index a sample email later.
     random_email = randint(1, 5)
@@ -40,25 +44,50 @@ def main():
     # Set the first 200000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
     print("\n>removing unecessary words..\n")
-    training_set = clean_data(unique_emails[0:1000])
-    testing_set = clean_data(unique_emails[1001:2000]) #currently unused
+    cleaned_enron = clean_data(unique_emails[0:2000])
+
+    # Split the cleaned enron dataset into a training and testing set. 50%.
+    training_set = cleaned_enron[0:1000]
+    testing_set = cleaned_enron[1001:2000]
 
     # Print the randint email in the training set after being normalized.
     print('Sample email, normalized content:\n\n', training_set[random_email])
 
-    process_dataset(training_set, testing_set)
+    # Call the create_dictionary function to gererate a dictionary from the training set.
+    created_dictionary = create_dictionary(training_set)
 
-def dictionary_classifier(dictionary):
+    # Send the training and testing set to the process_dataset function along with the dictionary.
+    process_dataset(training_set, testing_set, created_dictionary)
 
+    all_features = [(get_features(email, 'bow'), label) for (email, label) in unique_emails]
 
+    train_set, test_set, classifier = train(all_features, 0.8)
 
+    evaluate(train_set, test_set, classifier)
 
+    Results = classifier.show_most_informative_features(20)
 
-def process_dataset(training_set, testing_set):
+    print(Results)
+
+    save_classifier = open("naivebayes.pickle", "wb")
+    pickle.dump(classifier, save_classifier)
+    save_classifier.close()
+
+    classifier_f = open("naivebayes.pickle", "rb")
+    classifier = pickle.load(classifier_f)
+    print(repr(classifier))
+    classifier_f.close()
+
+def create_dictionary(training_set):
 
     # Implements the concept of Dictionary – a mapping between words and their integer ids, using the training set.
     print("\n>generating dictionary..\n")
     dictionary = gensim.corpora.Dictionary(training_set)
+
+    return dictionary
+
+
+def process_dataset(training_set, testing_set, dictionary):
 
     # Keep tokens that are contained in at least 20 documents (absolute number).
     # Keep tokens that are contained in no more than 0.1 documents (fraction of total corpus size, not absolute).
@@ -78,13 +107,6 @@ def process_dataset(training_set, testing_set):
     # Output our lsi_model: "LsiModel(num_terms=47483, num_topics=100, decay=1.0, chunksize=20000)
     lsi_model = gensim.models.LsiModel(tfidf_model[matrix], id2word=dictionary, num_topics=100)
 
-    print(tfidf_model)
-    print(tfidf_model[matrix])
-    print(lsi_model)
-    print(dictionary)
-
-
-
     # Generate 100 topics containing 10 words each.
     topics = lsi_model.print_topics(num_topics=100, num_words=8)
 
@@ -93,7 +115,7 @@ def process_dataset(training_set, testing_set):
 
         print(topic)
 
-    # Below is repeating lines 107 - 125, but applied to the testing dataset of emails.
+    # Below is repeating lines ### - ###, but applied to the testing dataset of emails.
     # Please note that the dictionary used here has been previously generated from the training set.
     # This code will be cleaned eventually.
     print("\n>generating testing matrix..\n")
@@ -108,19 +130,15 @@ def process_dataset(training_set, testing_set):
 
 
 # Explain this.
-def extract_csv_data(file, cols_to_clean = [], exclude = [[]]):
+def extract_data(folder):
 
-    data = pd.read_csv(file)
-    print("Email info Below:")
-    print(data['message'][20])
-
-    for i, col in enumerate(cols_to_clean):
-        exclude_pattern = re.compile('|'.join(exclude[i]))
-        data = data[data[col].str.contains(exclude_pattern) == False]
-
-    print(len(data), "is the length of the data.")
-
-    return data
+    a_list = []
+    file_list = os.listdir(folder)
+    for a_file in file_list:
+        f = open(folder + a_file, 'r', encoding='latin-1')
+        a_list.append(f.read())
+    f.close()
+    return a_list
 
 
 # Compares the emails in the CSV and removes duplicate emails.
@@ -153,15 +171,52 @@ def clean_data(data):
 # Clean up the data, remove unwanteds words that are such as I, A etc.. (stopwords.word('english')).
 def clean(doc):
 
+    doc = str(doc)
+
     words_to_exclude = set(stopwords.words('english'))
     exclude = set(string.punctuation)
     lemma = WordNetLemmatizer()
 
-    word_free = " ".join([i for i in doc.lower().split() if i not in words_to_exclude])
+    word_free = " ".join([i for i in  doc.lower().split() if i not in words_to_exclude])
     punc_free = ''.join(ch for ch in word_free if ch not in exclude)
     normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
 
     return normalized
+
+def preprocess(sentence):
+
+    lemma = WordNetLemmatizer()
+    tokens = word_tokenize(sentence)
+    return [lemma.lemmatize(word.lower()) for word in tokens]
+
+
+def get_features(text, setting):
+
+    stoplist = stopwords.words('english')
+
+    if setting=='bow':
+        return {word: count for word, count in Counter(preprocess(text)).items() if not word in stoplist}
+    else:
+        return {word: True for word in preprocess(text) if not word in stoplist}
+
+
+def train(features, samples_proportion):
+
+    train_size = int(len(features) * samples_proportion)
+    train_set, test_set = features[:train_size], features[train_size:]
+
+    print ('Training set size = ' + str(len(train_set)) + ' emails')
+    print ('Test set size = ' + str(len(test_set)) + ' emails')
+
+    classifier = NaiveBayesClassifier.train(train_set)
+    return train_set, test_set, classifier
+
+
+def evaluate(train_set, test_set, classifier):
+
+    print ('Accuracy on the training set = ' + str(classify.accuracy(classifier, train_set)))
+    print ('Accuracy of the test set = ' + str(classify.accuracy(classifier, test_set)))
+
 
 
 main()
