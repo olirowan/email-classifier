@@ -1,20 +1,14 @@
-import re
 from nltk.corpus import stopwords # Provides list of words to remove from emails.
 from nltk.stem.wordnet import WordNetLemmatizer # Words to neutral from (nouns by default) eg kills & killing > kill.
-import string
-from nltk import word_tokenize
+import string # Allows string operations.
+from nltk import word_tokenize # Tokenize a string to split off punctuation.
 import gensim # Topic modelling, document indexing and similarity retrieval.
-from random import randint
-import os
-from collections import Counter
-from nltk import NaiveBayesClassifier, classify
-import pickle
-import sys
+from random import randint # Allows generation of a random integer.
+import os # The OS.
+from collections import Counter # Allows counting of hashable objects.
+from nltk import NaiveBayesClassifier, classify # We can classify arbitrary text.
+import pickle # Converts python objects into a storable format and vice versa.
 
-
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-###  https://cambridgespark.com/content/tutorials/implementing-your-own-spam-filter/index.html  ###
-### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
 def main():
 
@@ -39,23 +33,22 @@ def main():
     all_emails = spam_emails + ham_emails
 
     # Random number used to index a sample email later.
-    random_email = randint(1, 50)
+    random_email = randint(1, 500)
 
     # Print the amount of emails we'll be working with.
     # Print number of unique emails, followed by the randint email as a sample.
     print('There are a total of {} non-duplicate emails.\n'.format(len(all_emails)))
     print('Sample email, unstructured content:\n\n', all_emails[random_email])
 
-    # Set the first 200000 emails as training set, the rest as testing set.
+    # Set the first 20000 emails as training set, the rest as testing set.
     # Send these emails to the "clean_data" function. This is a long process.
-    # Remove [0:2000] when not testing.
     print("\n>removing unecessary words..\n")
-    cleaned_enron = clean_data(all_emails[0:2000])
+    cleaned_enron = clean_data(all_emails)
 
     # Split the cleaned enron dataset into a training and testing set.
-    # When not testing set [0:1000] to [0:200000] and [1001:2000] to [200000:].
-    training_set = cleaned_enron[0:1000]
-    testing_set = cleaned_enron[1001:2000]
+    # When not testing set [0:1000] to [0:20000] and [1001:2000] to [20000:].
+    training_set = cleaned_enron[0:20000]
+    testing_set = cleaned_enron[20000:]
 
     # Print the randint email in the training set after being normalized.
     print('Sample email, normalized content:\n\n', training_set[random_email])
