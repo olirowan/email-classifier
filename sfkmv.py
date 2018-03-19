@@ -192,14 +192,17 @@ def process_dataset(training_set, testing_set, dictionary):
 # Yes the following two functions seem to repeat what has already been done, but its required to work.
 def get_features(text, setting):
 
+    # Set the stoplist to english.
     stoplist = stopwords.words('english')
 
+    # We pass the 'bow' (bag of words) setting,
     if setting=='bow':
         return {word: count for word, count in Counter(preprocess(text)).items() if not word in stoplist}
     else:
         return {word: True for word in preprocess(text) if not word in stoplist}
 
 
+# This again, is a function to convert words in the tokens to a lemmatized format.
 def preprocess(sentence):
 
     lemma = WordNetLemmatizer()
@@ -207,6 +210,7 @@ def preprocess(sentence):
     return [lemma.lemmatize(word.lower()) for word in tokens]
 
 
+# 
 def train(features, samples_proportion):
 
     train_size = int(len(features) * samples_proportion)
