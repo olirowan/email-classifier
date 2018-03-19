@@ -76,7 +76,7 @@ def main():
     evaluate(train_set, test_set, classifier)
 
     # Display a result that will contain the top *number specified* words that appear in ham or spam emails.
-    classifier.show_most_informative_features(200)
+    classifier.show_most_informative_features(20)
 
     # The generated classifer gets saved to a pickle file, so it can be used in future on other email sets.
     save_classifier = open("naivebayes.pickle", "wb")
