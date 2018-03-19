@@ -134,6 +134,7 @@ def clean(emailbody):
     return normalized
 
 
+# The function below is used to create the dictionary.
 def create_dictionary(training_set):
 
     # Implements the concept of Dictionary – a mapping between words and their integer ids, using the training set.
@@ -144,6 +145,7 @@ def create_dictionary(training_set):
     return dictionary
 
 
+# The function below is pass the email data through TFIDF and LSI.
 def process_dataset(training_set, testing_set, dictionary):
 
     # Keep tokens that are contained in at least 20 documents (absolute number).
@@ -187,6 +189,7 @@ def process_dataset(training_set, testing_set, dictionary):
         print(topic)
 
 
+# Yes the following two functions seem to repeat what has already been done, but its required to work.
 def get_features(text, setting):
 
     stoplist = stopwords.words('english')
