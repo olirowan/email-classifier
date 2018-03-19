@@ -9,6 +9,7 @@ import os
 from collections import Counter
 from nltk import NaiveBayesClassifier, classify
 import pickle
+import sys
 
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
@@ -60,28 +61,30 @@ def main():
     print('Sample email, normalized content:\n\n', training_set[random_email])
 
     # Call the create_dictionary function to gererate a dictionary from the training set.
-    # This gets stored in created_dictionary
+    # This gets stored in created_dictionary.
     created_dictionary = create_dictionary(training_set)
 
     # Send the training and testing set to the process_dataset function along with the dictionary.
     process_dataset(training_set, testing_set, created_dictionary)
 
-    # Explain this
+    # Call the get_features function, sending each email one at a time.
+    # The all_features variable will contain tokens in a bag-of-words format.
     all_features = [(get_features(email, 'bow'), label) for (email, label) in all_emails]
 
-    # Explain this
+    # Call the train function, sending all_features and a value to represent the % split between training and testing.
+    # The variables below will contain values for the train_set, test_set and classifier.
     train_set, test_set, classifier = train(all_features, 0.8)
 
-    # Explain this
+    # Send the train_set, test_set and the classifier to the evaluate function.
     evaluate(train_set, test_set, classifier)
 
-    # Explain this
+    # Results is a variable that will contain the top *number specified* words that appear in ham or spam emails.
     Results = classifier.show_most_informative_features(20)
 
-    # Explain this
+    # Print the Results for the user.
     print(Results)
 
-    # The generated classifer gets saved to a pickle file, so it can be used in future.
+    # The generated classifer gets saved to a pickle file, so it can be used in future on other email sets.
     save_classifier = open("naivebayes.pickle", "wb")
     pickle.dump(classifier, save_classifier)
     save_classifier.close()
@@ -195,7 +198,8 @@ def get_features(text, setting):
     # Set the stoplist to english.
     stoplist = stopwords.words('english')
 
-    # We pass the 'bow' (bag of words) setting,
+    # We pass the 'bow' (bag of words) setting. This will return words along with their count of occurances.
+    # The words will be not be returned if they appear in stopwords.
     if setting=='bow':
         return {word: count for word, count in Counter(preprocess(text)).items() if not word in stoplist}
     else:
@@ -205,26 +209,40 @@ def get_features(text, setting):
 # This again, is a function to convert words in the tokens to a lemmatized format.
 def preprocess(sentence):
 
+    # Return lemmatized words, converted to lowercase.
     lemma = WordNetLemmatizer()
     tokens = word_tokenize(sentence)
     return [lemma.lemmatize(word.lower()) for word in tokens]
 
 
-# 
+# The function will receive all_features and a percentage to split the words into a training and testing set.
 def train(features, samples_proportion):
 
+    # Calculate the amount of words to be placed in the trainging and testing set.
     train_size = int(len(features) * samples_proportion)
+
+    # The train_set variable will contain words from zero up to the percentage of amount specified.
+    # The test_set variable will contain words from onwards from the amount of percentage specified.
+    # For example, 100 words, 80% split:
+    # train_set will contain words from 0 to 80.
+    # test_set will contain words from 80 to 100.
     train_set, test_set = features[:train_size], features[train_size:]
 
+    # Print the amount of emails in the training set and testing set. For user informative purposes.
     print ('Training set size = ' + str(len(train_set)) + ' emails')
     print ('Test set size = ' + str(len(test_set)) + ' emails')
 
+    # Feed the train_set of words into the NaiveBayers classifier, whatever it learns is stored in the classifier variable.
     classifier = NaiveBayesClassifier.train(train_set)
+
+    # Send back the train_set, test_set and the newly learnt classifier.
     return train_set, test_set, classifier
 
 
+# This function will print the accuracy of the classifier when run against the train and test set.
 def evaluate(train_set, test_set, classifier):
 
+    # Prints accuracy information for user informative purposes.
     print ('Accuracy on the training set = ' + str(classify.accuracy(classifier, train_set)))
     print ('Accuracy of the test set = ' + str(classify.accuracy(classifier, test_set)))
 
