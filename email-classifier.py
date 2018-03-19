@@ -8,6 +8,10 @@ import os # The OS.
 from collections import Counter # Allows counting of hashable objects.
 from nltk import NaiveBayesClassifier, classify # We can classify arbitrary text.
 import pickle # Converts python objects into a storable format and vice versa.
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, LinearSVC
+from nltk.classify.scikitlearn import SklearnClassifier
 
 
 def main():
@@ -72,12 +76,35 @@ def main():
     evaluate(train_set, test_set, classifier)
 
     # Display a result that will contain the top *number specified* words that appear in ham or spam emails.
-    classifier.show_most_informative_features(20)
+    classifier.show_most_informative_features(200)
 
     # The generated classifer gets saved to a pickle file, so it can be used in future on other email sets.
     save_classifier = open("naivebayes.pickle", "wb")
     pickle.dump(classifier, save_classifier)
     save_classifier.close()
+
+
+    # CLASSIFIERS
+    # Print additional classifiers accuracy results when ran against the test_set.
+    mnb_classifier = SklearnClassifier(MultinomialNB())
+    mnb_classifier.train(train_set)
+    print("MNB_classifier accuracy percent:", (classify.accuracy(mnb_classifier, test_set)) * 100)
+
+    bernouliNB_classifier = SklearnClassifier(BernoulliNB())
+    bernouliNB_classifier.train(train_set)
+    print("BernoulliNB_classifier accuracy percent:", (classify.accuracy(bernouliNB_classifier, test_set)) * 100)
+
+    logisticRegression_classifier = SklearnClassifier(LogisticRegression())
+    logisticRegression_classifier.train(train_set)
+    print("LogisticRegression_classifier accuracy percent:", (classify.accuracy(logisticRegression_classifier, test_set)) * 100)
+
+    svc_classifier = SklearnClassifier(SVC())
+    svc_classifier.train(train_set)
+    print("SVC_classifier accuracy percent:", (classify.accuracy(svc_classifier, test_set)) * 100)
+
+    linearsvc_classifier = SklearnClassifier(LinearSVC())
+    linearsvc_classifier.train(train_set)
+    print("LinearSVC_classifier accuracy percent:", (classify.accuracy(linearsvc_classifier, test_set)) * 100)
 
 
 # This function is to obtain the email contents from the enron folders.
@@ -208,7 +235,7 @@ def preprocess(sentence):
 # The function will receive all_features and a percentage to split the words into a training and testing set.
 def train(features, samples_proportion):
 
-    # Calculate the amount of words to be placed in the trainging and testing set.
+    # Calculate the amount of words to be placed in the training and testing set.
     train_size = int(len(features) * samples_proportion)
 
     # The train_set variable will contain words from zero up to the percentage of amount specified.
@@ -233,8 +260,8 @@ def train(features, samples_proportion):
 def evaluate(train_set, test_set, classifier):
 
     # Prints accuracy information for user informative purposes.
-    print ('Accuracy on the training set = ' + str(classify.accuracy(classifier, train_set)))
-    print ('Accuracy of the test set = ' + str(classify.accuracy(classifier, test_set)))
+    print ('Accuracy of the Naives Bayes Classifier on the training set: ', (classify.accuracy(classifier, train_set)) * 100)
+    print ('Accuracy of the Naives Bayes Classifier on the test set: ',(classify.accuracy(classifier, test_set)) * 100)
 
 
 main()
